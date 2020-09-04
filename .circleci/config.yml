@@ -29,6 +29,28 @@ commands:
             fi
 
 jobs:
+  Build for Xcode 12:
+    executor:
+      name: ios/default
+      xcode-version: "12.0.0"
+    steps:
+      - git/shallow-checkout
+      - ios/install-dependencies:
+            bundle-install: true
+            pod-install: true
+            cache-prefix: cache-prefix-{{ checksum ".circleci/cache-version" }}
+      - run:
+          name: Install Dependencies
+          command: rake dependencies
+      - ios/xcodebuild:
+          command: build-for-testing
+          arguments: -workspace 'WordPress.xcworkspace' -scheme 'WordPress' -configuration 'Debug' -sdk iphonesimulator -derivedDataPath DerivedData
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - DerivedData/Build/Products
+            - Pods/WordPressMocks
+            - vendor/bundle
   Build Tests:
     executor:
       name: ios/default
@@ -236,15 +258,16 @@ workflows:
   wordpress_ios:
     unless: << pipeline.parameters.translation_review_build >>
     jobs:
-      - Build Tests
+      # - Build Tests
+      - Build for Xcode 12
       - Unit Tests:
-          requires: [ "Build Tests" ]
+          requires: [ "Build for Xcode 12" ]
       # Always run UI tests on develop and release branches
       - UI Tests:
           name: UI Tests (iPhone 11)
           device: iPhone 11
           post-to-slack: true
-          requires: [ "Build Tests" ]
+          requires: [ "Build for Xcode 12" ]
           filters:
             branches:
               only:
@@ -254,7 +277,7 @@ workflows:
           name: UI Tests (iPad Air 3rd generation)
           device: iPad Air \\(3rd generation\\)
           post-to-slack: true
-          requires: [ "Build Tests" ]
+          requires: [ "Build for Xcode 12" ]
           filters:
             branches:
               only:
@@ -263,7 +286,7 @@ workflows:
       #Optionally run UI tests on PRs
       - Optional Tests:
           type: approval
-          requires: [ "Build Tests" ]
+          requires: [ "Build for Xcode 12" ]
           filters:
             branches:
               ignore:
