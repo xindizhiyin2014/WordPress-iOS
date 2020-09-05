@@ -27,6 +27,13 @@ commands:
               echo "Manually added `/usr/local/bin` to the $PATH:"
               echo $PATH
             fi
+ fix-ruby:
+    steps:
+      - run:
+          name: Fix Ruby
+          command: |
+            # Xcode 12 machines aren't working properly with Ruby
+
 
 jobs:
   Build for Xcode 12:
@@ -39,6 +46,7 @@ jobs:
             bundle-install: true
             pod-install: true
             cache-prefix: cache-prefix-{{ checksum ".circleci/cache-version" }}
+      - fix-ruby
       - run:
           name: Install Dependencies
           command: rake dependencies
